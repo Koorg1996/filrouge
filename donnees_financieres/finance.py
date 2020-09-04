@@ -42,20 +42,30 @@ class financial_data():
     
     def make_data(self):
         df = pd.DataFrame(columns=['Date'])
+        names = []
 
         for i, entreprise in enumerate(self.entreprises):
-            ent = yf.Ticker(entreprise)
-            data = ent.history(period="max",start="2019-01-12")
-            data = data.reset_index()[["Date", "Open"]]
-            if i == 0:
-                df["Date"] = data["Date"]
-            df = df.merge(data, left_on="Date", right_on="Date")
-        names = ["Date"] + self.entreprises
+            try:
+                ent = yf.Ticker(entreprise)
+                data = ent.history(period="max",start="2019-01-12")
+                data = data.reset_index()[["Date", "Open"]]
+                if df.empty and data.empty == False:
+                    df["Date"] = data["Date"]
+                if df.empty == False and data.empty == False:
+                    df = df.merge(data, left_on="Date", right_on="Date")
+                    names.append(entreprise)
+            except:
+                continue
+
+        names = ["Date"] + names
         df.columns = names
 
         return df
 
 
+if __name__ == "__main__":
+    test = financial_data(["AGGNY", "SKYW"])
 
+    df = test.make_data()
 
-
+    print(df)
