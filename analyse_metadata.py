@@ -96,6 +96,6 @@ def analyse_dictio(col, max_k = 16):
         print("Si on prend les "+str(i)+" premiers genres "+str(n/len(total_obj)*100)+" % des films comportent au moins un de ces genres ") 
         print(first_k) 
 
-analyse_dictio("production_countries")
+analyse_dictio("genres")
    
              
