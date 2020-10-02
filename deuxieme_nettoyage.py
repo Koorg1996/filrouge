@@ -2,29 +2,59 @@ import pandas as pd
 import numpy as np
 import matplotlib as plt
 import ast
-import datetime
 from ast import literal_eval
-import sklearn
-import json
 
-#DATA
+
+#IMPORT DATA
 metadata = pd.read_csv("/home/fitec/donnees_films/metadata_carac_speciaux.csv")
 keywords=pd.read_csv('/home/fitec/donnees_films/keywords_carac_speciaux.csv', delimiter = ',')
 ratings=pd.read_csv('/home/fitec/donnees_films/ratings.csv', delimiter = ',')
 
-#NETTOYAGE
+
+
+#                                           NETTOYAGE
+
+
+
 #1 supprimer les valeurs missing
 metadata=metadata.dropna(subset=['id'])
 metadata=metadata.dropna(subset=['title'])
-#2 selectionner les film=released et transformer la variable adult en variable quali et supprimer les doublons id
-#status released
+
+
+
+
+
+
+#2 selectionner les film=released
 metadata=metadata.loc[metadata['status']== 'Released']
-#encode adult var
+
+
+
+
+
+
+#3 encode adult var
 metadata=pd.get_dummies(metadata, columns=["adult"])
-#drop duplicates  
+
+
+
+
+
+
+
+
+#4 drop duplicates  
 metadata=metadata.drop_duplicates()
 metadata=metadata.drop_duplicates(subset='id', keep="first")
-#selection variables
+
+
+
+
+
+
+
+
+#5 selection variables
 metadata=metadata[['genres', 
                      'id',
                      'original_language', 
@@ -36,6 +66,21 @@ metadata=metadata[['genres',
                      'vote_count',
                      'adult_False', 
                      'adult_True'      ]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#6                                           Travail sur les variables dictionnaire
 
 ###############################fonction pr obtenir une liste des categories (max 20 elements a priori) a partir des dictionnaires
 def categorie (data, variable):
@@ -50,15 +95,9 @@ liste_pcount=categorie(metadata, 'production_countries')
 
 metadata=metadata.drop(['genrestest'], axis=1)
 
-#########################fonction pour attribuer 1 a chaque element qui existe dans la liste des categories############################
+#########################fonction encoding pour attribuer 1 a chaque element qui existe dans la liste des categories############################
 def encoding_dic(data, variable, liste):
-    
-    #Colonne concernée
-    #serie_col = data["genres"]
-        
-    #Liste des catégories conservées
-    #liste = ['Drama', 'Comedy', 'Thriller', 'Romance', 'Action', 'Horror', 'Crime', 'Documentary', 'null']
-    
+
     serie_col = data[variable]
     #Création de la colonne total : liste des catégories appartenant à la liste pour chaque ligne
     def add(x, liste_col):
@@ -109,7 +148,23 @@ datamovienew=pd.concat([metadata, dfgenres, dfprodcomp, dfprodcount], axis=1)
 
 datamovienew=datamovienew.drop(['genres', 'production_companies', 'production_countries'], axis=1)
 
-#####keywords
+#                                   Fin du travail sur les variables dictionnaire
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#7 ajouter la variable keywords de la table keywords
 keywords=keywords.dropna(subset=['id'])
 keywords=keywords.drop_duplicates(subset='id', keep="first")
 
@@ -122,11 +177,18 @@ dfkey=dfkey.drop(['keywords', 'total'], axis=1)
 datakey=pd.concat([keywords, dfkey], axis=1)
 datakey=datakey.drop(['keywords'], axis=1)
 
-####merge entre keywords et datamovienew
-
 datamovienew=pd.merge(datamovienew,datakey, on='id')
 
-#### Catégorisation de la variable release_date
+
+
+
+
+
+
+
+
+
+#8 Catégorisation de la variable release_date
 var = []
 a0 = "date inconnue"
 a1 = "films anciens"
@@ -152,7 +214,18 @@ datamovienew=pd.get_dummies(datamovienew, columns=["dates_types"])
 datamovienew=datamovienew.drop(['release_date'], axis=1)
 
 
-#### Catégorisation de la variable original language
+
+
+
+
+
+
+
+
+
+
+
+#9 Catégorisation de la variable original language
 datamovienew["original_language"].unique()
 
 def only_these_languages(x):
@@ -162,22 +235,18 @@ def only_these_languages(x):
         return x
     
 datamovienew["original_language"] = datamovienew["original_language"].apply(lambda x : only_these_languages(x))  
-    
 datamovienew=pd.get_dummies(datamovienew, columns=["original_language"])
-
 final_data_movie = datamovienew
 
 
-## import de ratings.csv et merge avec datamovienew3
 
-ratings.dropna(subset=['userId'])
-ratings=ratings.dropna(subset=['movieId'])
-ratings=ratings.drop_duplicates()
-ratings['movieId']=ratings['movieId'].astype('str')
-ratings['userId']=ratings['userId'].astype('str')
-
-df_movie = ratings.merge(datamovienew3, left_on='movieId', right_on='id', how='inner')
+#                                  Fin du nettoyage
 
 
-#df_movie[[ 'id', 'movieId', 'title']].head(5)   !!!!!
-####FIN
+               
+#10 On save la table 
+final_data_movie.to_csv("/home/fitec/donnees_films/final_data_movie.csv")
+
+
+
+
