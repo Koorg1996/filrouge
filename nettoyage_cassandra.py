@@ -11,7 +11,7 @@ data = pd.read_csv(link)
 
 # ENLEVER LES CARACTERES SPECIAUX DE METADATA
 def delete_special_character(x):
-    accepted_character = ['.',',','0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'w', 'x', 'c', 'v', 'b', 'n', 'A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'W', 'X', 'C', 'V', 'B', 'N', '{', '}', '[', ']', ':', ',', '_', '-', "'"]
+    accepted_character = ['.',',','0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'w', 'x', 'c', 'v', 'b', 'n', 'A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'W', 'X', 'C', 'V', 'B', 'N', '{', '}', '[', ']', ':', ',', '_', '-', "'", '"']
     if type(x) == str:
         clean_str = ""
         for i, lettre in enumerate(x):
@@ -30,7 +30,7 @@ test = data.applymap(lambda x: delete_special_character(x))
 
 #adult : ok
 #belongs_to_collection
-test["belongs_to_collection"] = test["belongs_to_collection"].apply(lambda x : "[]" if type(x) == float else str(x))
+test["belongs_to_collection"] = test["belongs_to_collection"].apply(lambda x : "[]" if type(x) == float else x)
 #budget
 test["budget"] = test["budget"].apply(lambda x : float(x) if x not in ["ff9qCepilowshEtG2GYWwzt2bs4.jpg", "zV8bHuSL6WXoD6FWogP9j4x80bL.jpg", "zaSf5OG7V8X8gqFvly88zDdRm46.jpg"] else 0)
 #genres : ok
@@ -53,9 +53,9 @@ test["popularity"] = test["popularity"].apply(lambda x : 0 if pd.isnull(x) else 
 #poster_path
 test["poster_path"] = test["poster_path"].apply(lambda x : "" if pd.isnull(x) else str(x))
 #production_companies
-test["production_companies"] = test["production_companies"].apply(lambda x : "[]" if pd.isnull(x) else str(x))
+test["production_companies"] = test["production_companies"].apply(lambda x : "[]" if pd.isnull(x) else x)
 #production_countries
-test["production_countries"] = test["production_countries"].apply(lambda x : "[]" if pd.isnull(x) else str(x))
+test["production_countries"] = test["production_countries"].apply(lambda x : "[]" if pd.isnull(x) else x)
 #release_date
 test["release_date"] = test["release_date"].apply(lambda x : "" if pd.isnull(x) else str(x))
 #revenue
