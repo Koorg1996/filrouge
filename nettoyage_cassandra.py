@@ -84,3 +84,15 @@ test.to_csv(path + "metadata_carac_speciaux.csv", index= False)
 keywords = pd.read_csv(path + "keywords.csv")
 keywords = keywords.applymap(lambda x: delete_special_character(x))    
 keywords.to_csv(path + "keywords_carac_speciaux.csv", index= False)
+
+# TRAVAIL sur ratings.csv
+
+# enlever les doublons 
+ratings = pd.read_csv(path + "ratings.csv")
+ratings.dropna(subset=['userId'])
+ratings=ratings.dropna(subset=['movieId'])
+ratings=ratings.drop_duplicates()
+ratings.to_csv(path + "clean_ratings.csv", index= False)
+
+# fin du script : supprimer toutes les variables de l'environement, commande spécifique à ipython
+%reset -f
