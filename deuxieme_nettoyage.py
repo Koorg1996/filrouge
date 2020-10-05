@@ -4,11 +4,12 @@ import matplotlib as plt
 import ast
 from ast import literal_eval
 
+path = "/home/fitec/donnees_films/"
 
 #IMPORT DATA
-metadata = pd.read_csv("/home/fitec/donnees_films/metadata_carac_speciaux.csv")
-keywords=pd.read_csv('/home/fitec/donnees_films/keywords_carac_speciaux.csv', delimiter = ',')
-ratings=pd.read_csv('/home/fitec/donnees_films/ratings.csv', delimiter = ',')
+metadata = pd.read_csv(path + "metadata_carac_speciaux.csv")
+keywords=pd.read_csv(path + "keywords_carac_speciaux.csv", delimiter = ',')
+ratings=pd.read_csv(path + "ratings.csv", delimiter = ',')
 
 
 
@@ -245,7 +246,7 @@ final_data_movie = datamovienew
 
                
 #10 On save la table 
-final_data_movie.to_csv("/home/fitec/donnees_films/final_data_movie.csv")
+final_data_movie.to_csv(path + "final_data_movie.csv")
 
 
 

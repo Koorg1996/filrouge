@@ -4,12 +4,13 @@ import json
 import ast
 
 
-fichier = "movies_metadata.csv"
-link = "/home/fitec/donnees_films/"+fichier
-data = pd.read_csv(link)
+path = "/home/fitec/donnees_films/"
 
+# TRAVAIL NECESSAIRE SUR CHAQUE VARIABLE pour movies_metadata.csv
 
-# ENLEVER LES CARACTERES SPECIAUX DE METADATA
+data = pd.read_csv(path + "movies_metadata.csv" )
+
+# retirer les caracteres spéciaux
 def delete_special_character(x):
     accepted_character = ['.',',','0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'w', 'x', 'c', 'v', 'b', 'n', 'A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'W', 'X', 'C', 'V', 'B', 'N', '{', '}', '[', ']', ':', ',', '_', '-', "'", '"']
     if type(x) == str:
@@ -24,9 +25,6 @@ def delete_special_character(x):
         return x
 
 test = data.applymap(lambda x: delete_special_character(x))
-
-
-#TRAVAIL NECESSAIRE SUR CHAQUE VARIABLE
 
 #adult : ok
 #belongs_to_collection
@@ -77,14 +75,12 @@ test["vote_average"] = test["vote_average"].apply(lambda x : 0 if pd.isnull(x) e
 test["vote_count"] = test["vote_count"].apply(lambda x : 0 if pd.isnull(x) else int(x))
 
 
-test.to_csv("/home/fitec/donnees_films/metadata_carac_speciaux.csv", index= False)
+test.to_csv(path + "metadata_carac_speciaux.csv", index= False)
 
-#######################################################################
+# TRAVAIL SUR keywords.csv
 
-# ENLEVER LES CARACTERES SPECIAUX ET TRAVAIL NECESSAIRE DE KEYWORDS.CSV
-keywords = pd.read_csv("/home/fitec/donnees_films/keywords.csv")
+# retirer les caracteres spéciaux
 
-keywords = keywords.applymap(lambda x: delete_special_character(x))
-keywords.info()
-        
-keywords.to_csv("/home/fitec/donnees_films/keywords_carac_speciaux.csv", index= False)
+keywords = pd.read_csv(path + "keywords.csv")
+keywords = keywords.applymap(lambda x: delete_special_character(x))    
+keywords.to_csv(path + "keywords_carac_speciaux.csv", index= False)
