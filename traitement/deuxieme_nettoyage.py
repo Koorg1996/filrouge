@@ -249,7 +249,6 @@ final_data_movie = datamovienew
 final_data_movie.to_csv(path + "final_data_movie.csv", index= False)
 
 
-# fin du script : supprimer toutes les variables de l'environement, commande spécifique à ipython
-%reset -f
+
 
 

@@ -24,7 +24,7 @@ data[["vote_average", "vote_count"]] = pd.DataFrame(sc.fit_transform(data[["vote
 data = data.drop(["vote_count", "vote_average"], axis = 1)
 
 
-#méthode du coude pour déterminer le nombre de clusters
+l#méthode du coude pour déterminer le nombre de clusters
 #inerties = []
 #for i in range(1,20):
 #    kmeans = KMeans(n_clusters=i, random_state=0).fit(data)

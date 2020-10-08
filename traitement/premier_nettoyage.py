@@ -77,6 +77,8 @@ test["vote_count"] = test["vote_count"].apply(lambda x : 0 if pd.isnull(x) else 
 
 test.to_csv(path + "metadata_carac_speciaux.csv", index= False)
 
+del data
+del test
 # TRAVAIL SUR keywords.csv
 
 # retirer les caracteres spéciaux
@@ -85,6 +87,7 @@ keywords = pd.read_csv(path + "keywords.csv")
 keywords = keywords.applymap(lambda x: delete_special_character(x))    
 keywords.to_csv(path + "keywords_carac_speciaux.csv", index= False)
 
+del keywords
 # TRAVAIL sur ratings.csv
 
 # enlever les doublons 
@@ -94,5 +97,4 @@ ratings=ratings.dropna(subset=['movieId'])
 ratings=ratings.drop_duplicates()
 ratings.to_csv(path + "clean_ratings.csv", index= False)
 
-# fin du script : supprimer toutes les variables de l'environement, commande spécifique à ipython
-%reset -f
+del ratings
