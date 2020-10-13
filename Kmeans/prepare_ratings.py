@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import plotly.express as px
 
+#Visualisation du nombre total de vues propre à un film, et propre à un utilisateur
 ratings = "data_csv/ratings.csv"
 link = ratings
 data = pd.read_csv(link)
