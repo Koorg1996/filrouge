@@ -14,3 +14,10 @@ data = pd.read_csv(link)
 #nombre total de films vues par utilisateur
 votecount = data.groupby(["userId"])["rating"].apply(lambda x : len(list(x) )).reset_index(name = 'voteCount')
 votecount
+
+
+output_dir = "data_csv/more/"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+votecounts.to_csv(str(output_dir+"votecounts.csv"))
+#str(output_dir+"votecounts.csv")
