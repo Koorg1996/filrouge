@@ -47,7 +47,7 @@ metadata=pd.get_dummies(metadata, columns=["adult"])
 #4 drop duplicates  
 metadata=metadata.drop_duplicates()
 metadata=metadata.drop_duplicates(subset='id', keep="first")
-
+metadata = metadata.reset_index(drop=True)
 
 
 
@@ -83,19 +83,6 @@ metadata=metadata[['genres',
 
 #6                                           Travail sur les variables dictionnaire
 
-###############################fonction pr obtenir une liste des categories (max 20 elements a priori) a partir des dictionnaires
-def categorie (data, variable):
-    data['genrestest'] = data[variable].fillna('[]').apply(literal_eval).apply(lambda x: [i['name'] for i in x] if isinstance(x, list) else [])
-    liste=data['genrestest'].str[0].value_counts()[:20].index.tolist()
-    return liste
-#######################################################
-
-liste_genre=categorie(metadata, 'genres')
-liste_pcomp=categorie(metadata, 'production_companies')
-liste_pcount=categorie(metadata, 'production_countries')
-
-metadata=metadata.drop(['genrestest'], axis=1)
-
 #########################fonction encoding pour attribuer 1 a chaque element qui existe dans la liste des categories############################
 def encoding_dic(data, variable, liste):
 
@@ -111,7 +98,7 @@ def encoding_dic(data, variable, liste):
                     if comp in liste_col:
                         total.append(comp)
                 if len(total) == 0:
-                    total.append("null")
+                    total.append("none")
             else:
                 total.append("null")
         return total
@@ -137,12 +124,15 @@ def encoding_dic(data, variable, liste):
     return df
 
 ##########################################################
+liste_genre = ['Drama', 'Comedy', 'Thriller', 'Romance', 'Action', 'Horror', 'Crime', 'Documentary']
+liste_prod_comp = ['WarnerBros.', 'Metro-Goldwyn-MayerMGM', 'ParamountPictures', 'TwentiethCenturyFoxFilmCorporation', 'UniversalPictures', 'ColumbiaPicturesCorporation', 'Canal', 'ColumbiaPictures', 'RKORadioPictures']
+liste_prod_count = ['UnitedStatesofAmerica', 'null', 'UnitedKingdom', 'France', 'Germany', 'Italy', 'Canada', 'Japan', 'Spain', 'Russia']
 
 dfgenres = encoding_dic(data=metadata, variable="genres", liste=liste_genre)
 dfgenres=dfgenres.drop(['genres', 'total'], axis=1)
-dfprodcomp = encoding_dic(data=metadata, variable="production_companies", liste=['null', 'Warner Bros.', 'Metro-Goldwyn-Mayer (MGM)', 'Paramount Pictures'])
+dfprodcomp = encoding_dic(data=metadata, variable="production_companies", liste=liste_prod_comp)
 dfprodcomp=dfprodcomp.drop(['production_companies', 'total'], axis=1)
-dfprodcount = encoding_dic(data=metadata, variable="production_countries", liste=liste_pcount)
+dfprodcount = encoding_dic(data=metadata, variable="production_countries", liste=liste_prod_count)
 dfprodcount=dfprodcount.drop(['production_countries', 'total'], axis=1)
 
 datamovienew=pd.concat([metadata, dfgenres, dfprodcomp, dfprodcount], axis=1)
@@ -169,9 +159,7 @@ datamovienew=datamovienew.drop(['genres', 'production_companies', 'production_co
 keywords=keywords.dropna(subset=['id'])
 keywords=keywords.drop_duplicates(subset='id', keep="first")
 
-liste_key=categorie(keywords, 'keywords')
-keywords=keywords.drop(['genrestest'], axis=1)
-
+liste_key=['woman director', 'independent film', 'murder', 'based on novel', 'musical', 'sex', 'violence', 'nudity', 'biography', 'revenge', 'suspense', 'love', 'female nudity', 'sport', 'police', 'teenager', 'duringcreditsstinger', 'sequel', 'friendship', 'world war ii', 'drug', 'prison', 'stand-up comedy', 'high school', 'martial arts', 'suicide', 'kidnapping', 'rape', 'silent film', 'film noir', 'family', 'serial killer', 'monster', 'alien', 'dystopia', 'paris', 'new york', 'blood', 'gay', 'short', 'marriage', 'christmas', 'gore', 'zombie', 'death', 'gangster', 'small town', 'london england', 'romance', 'prostitute', 'detective', 'aftercreditsstinger', 'male nudity', 'robbery', 'vampire', 'father son relationship', 'wedding', 'los angeles', 'escape', 'dog', 'teacher', 'holiday', 'war', 'magic', 'hospital', 'doctor', 'music', 'remake', 'jealousy', 'based on true story', 'ghost', 'party', 'island', 'spy', 'new york city', 'lgbt', 'japan', 'daughter', 'investigation', 'coming of age', 'money', 'superhero', 'infidelity', 'corruption', 'torture', 'brother brother relationship', 'homosexuality', 'nazis', 'adultery', 'extramarital affair', 'wife husband relationship', 'slasher', 'supernatural', 'lawyer', 'dark comedy', 'friends', 'scientist']
 dfkey= encoding_dic(data=keywords, variable="keywords", liste=liste_key)
 dfkey=dfkey.drop(['keywords', 'total'], axis=1)
 
@@ -201,7 +189,7 @@ a = dates.apply(lambda x : str(x))
 a = pd.DataFrame(a.apply(lambda x : x[0:4]))
 
 for i in range(0,len(a)):
-    if (len(a.loc[i,'release_date']) < 4 ) :
+    if len(a.loc[i,'release_date']) < 4:
         var.append(a0)
     elif (len(a.loc[i,'release_date']) >= 4 and int(a.loc[i,'release_date']) <= 1990) :
         var.append(a1)
@@ -209,11 +197,12 @@ for i in range(0,len(a)):
         var.append(a2)
     elif (len(a.loc[i,'release_date']) >= 4 and int(a.loc[i,'release_date']) > 2010):
         var.append(a3)
+    else:
+        var.append(a0)
 
 datamovienew["dates_types"] = var
 datamovienew=pd.get_dummies(datamovienew, columns=["dates_types"])
 datamovienew=datamovienew.drop(['release_date'], axis=1)
-
 
 
 

@@ -4,8 +4,8 @@ import json
 import ast
 
 
-fichier = "movies_metadata.csv"
-link = "D:/filrouge/data/"+fichier
+fichier = "metadata_carac_speciaux.csv"
+link = "/home/fitec/donnees_films/"+fichier
 data = pd.read_csv(link)
 
 columns_to_drop = ["homepage", "imdb_id", "overview", "poster_path", "status", "tagline", "title"]
@@ -67,7 +67,7 @@ def get_one_of_k(liste, first_elements):
             return 1   
     return 0
         
-def analyse_dictio(col, max_k = 16):
+def analyse_dictio(col, max_k = 40):
     ID = df['id']
     col = df[col]
     total_obj = []
@@ -96,6 +96,6 @@ def analyse_dictio(col, max_k = 16):
         print("Si on prend les "+str(i)+" premiers genres "+str(n/len(total_obj)*100)+" % des films comportent au moins un de ces genres ") 
         print(first_k) 
 
-analyse_dictio("genres")
+analyse_dictio("production_countries")
    
              

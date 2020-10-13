@@ -5,7 +5,7 @@ import ast
 
 
 fichier = "keywords.csv"
-link = "D:/filrouge/data/"+fichier
+link = "/home/fitec/donnees_films/"+fichier
 data = pd.read_csv(link)
 
 df = data
@@ -30,7 +30,7 @@ def get_one_of_k(liste, first_elements):
             return 1   
     return 0
         
-def analyse_dictio(col, max_k = 10):
+def analyse_dictio(col, max_k = 100):
     ID = df['id']
     col = df[col]
     total_obj = []
