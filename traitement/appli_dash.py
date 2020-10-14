@@ -8,13 +8,13 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.DataFrame({
-    "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-    "Amount": [4, 1, 2, 2, 4, 5],
-    "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-})
+
+path = "/home/fitec/donnees_films/"
+
+df = pd.read_csv(path + "final_data_movie.csv")
+
+
+
 
 fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
 
@@ -22,12 +22,28 @@ app.layout = html.Div(children=[
     html.H1(children='Hello Dash'),
 
     html.Div(children='''
-        Dash: A web application framework for Python.
+        Dash: Simulation de la modélisation et de la recommendation
     '''),
 
     dcc.Graph(
-        id='example-graph',
+        id='Graph 1',
         figure=fig
+        ,
+
+    dcc.Graph(
+        id='Graph 2',
+        figure=fig
+        ,
+
+    dcc.Graph(
+        id='Graph 3',
+        figure=fig
+        ,
+
+    dcc.Graph(
+        id='Graph 4',
+        figure=fig
+        
     )
 ])
 

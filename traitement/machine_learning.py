@@ -5,17 +5,27 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
+
+
+#                                    Parametres
+path = "/home/fitec/donnees_films/"
+acp_dim = 26
+k_means_movies = 8
+k_means_users = 4
+
+
+
+
+
+
 #chargement de la data,sélectionner uniquement les films qui ont été noté plus de 1000 fois, et les utilisateurs ayant noté moins de 1000 films
 
-path = "/home/fitec/donnees_films/"
 final_data_movie = pd.read_csv(path + "final_data_movie.csv")
 ratings = pd.read_csv(path + "clean_ratings.csv")
 
+
 all_movies = list(final_data_movie.drop_duplicates("id")["id"])
 ratings = ratings[ratings["movieId"].isin(all_movies)]
-
-
-
 
 nbr_votes_user = ratings.groupby("userId")["userId"].count().reset_index(name= "count_user")
 ratings = pd.merge(ratings, nbr_votes_user, left_on="userId", right_on='userId', how='inner')
@@ -31,6 +41,7 @@ final_data_movie = final_data_movie[final_data_movie["id"].isin(legit_movies)]
 del nbr_votes_user
 del nbr_votes_movie
 del legit_movies
+del all_movies
 
 #Supprimer vote average et vote count
 
@@ -74,12 +85,10 @@ data = data.drop(["vote_count", "vote_average"], axis = 1)
 
 #Il semblerait par la méthode du coude que les 25 premieres composantes sont à sélectionner pour résumer la donnée
 
-pca = PCA(n_components=26, random_state = 80)
+pca = PCA(n_components=acp_dim, random_state = 80)
 pca.fit(data)
 data = pd.DataFrame(pca.transform(data))
-
-
-
+del pca
 
 
 
@@ -99,13 +108,14 @@ data = pd.DataFrame(pca.transform(data))
 #
 #plt.plot(inerties)
 
-#on garde k=8
+#on retient k = 8 selon le critere de coude
 
-k = 8
-kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(data)
+kmeans = KMeans(n_clusters=k_means_movies, random_state=0, n_init=10).fit(data)
 final_data_movie["cluster_movie"] = kmeans.labels_
-kmeans.n_iter_
+del kmeans
+del data
 
+#kmeans.n_iter_
 # Les 10 meilleurs films de chaque cluster movie
 #print(final_data_movie.groupby("cluster_movie")["cluster_movie"].count())
 #movies = []
@@ -117,22 +127,21 @@ kmeans.n_iter_
 #    clusters.append(i)
 #d = {'clusters':clusters,'movies':movies}
 #best_movies_cluster_movie = pd.DataFrame(d)
-description_clustering = final_data_movie.groupby(["cluster_movie"]).sum()
 
-
+#description_clustering = final_data_movie.groupby(["cluster_movie"]).sum()
 
 
 
 #   Rating clutser : ratings + clusters
 
 #Merge de ratings et de final_data_movie (on garde seulement les clusters)
-join = final_data_movie[["title", "id", "cluster_movie"]]
-ratings_cluster = pd.merge(ratings, join, left_on='movieId', right_on='id')
-ratings_cluster = ratings_cluster.drop("timestamp", axis = 1)
-
+no_labels_final_data_movie = final_data_movie[["title", "id", "cluster_movie"]]
+ratings = pd.merge(ratings, no_labels_final_data_movie, left_on='movieId', right_on='id')
+ratings = ratings.drop("timestamp", axis = 1)
+del no_labels_final_data_movie
 
 # Pour faire le kmeans utilisateur, on retire les individus ayant noté moins de 50 films
-ratings_cluster = ratings_cluster[ratings_cluster["count_user"]>50]
+#ratings = ratings_cluster[ratings["count_user"]>50]
 
 
 
@@ -143,15 +152,17 @@ ratings_cluster = ratings_cluster[ratings_cluster["count_user"]>50]
 # On veut obtenir la table pour lancer le kmeans utilisateurs
 
 # moyenne et compte des notes par catégorie de film et par utilisateur
-table = ratings_cluster.groupby(["userId", "cluster_movie"])["rating"].apply(lambda x : sum(x)/len(x)).reset_index(name = "mean")
-table["compte"] = ratings_cluster.groupby(["userId", "cluster_movie"])["rating"].count().reset_index(name = "compte")["compte"]
+table = ratings.groupby(["userId", "cluster_movie"])["rating"].apply(lambda x : sum(x)/len(x)).reset_index(name = "mean")
+table["compte"] = ratings.groupby(["userId", "cluster_movie"])["rating"].count().reset_index(name = "compte")["compte"]
 
 #On fait un pivot pour obtenir la table des kmeans utilisateur et on renomme les colonnes(à la main)
 final_data_user = table.pivot(index = "userId", columns ="cluster_movie", values=["mean","compte"]).reset_index()
 final_data_user.columns = ["userId", "mean_0", "mean_1", "mean_2","mean_3","mean_4","mean_5","mean_6","mean_7", "compte_0", "compte_1", "compte_2", "compte_3","compte_4", "compte_5", "compte_6", "compte_7"]
 #on remplace les nan par la moyenne de chaque catégorie de film, c'est environ 3.5 pour tous donc on remplace tous les nan par 3.5
-print(ratings_cluster.groupby("cluster_movie")["rating"].mean().reset_index(name="mean"))
+#print(ratings.groupby("cluster_movie")["rating"].mean().reset_index(name="mean"))
 final_data_user = final_data_user.fillna(3.5)
+
+del table
 
 
 
@@ -173,38 +184,43 @@ data = final_data_user.drop(['userId', 'compte_0', 'compte_1','compte_2', 'compt
 
 for col in data.drop("note_moy_user", axis=1).columns:
     data[col] = data[col]/data["note_moy_user"]
-
 data = data.drop("note_moy_user", axis=1)
 
+del moy_by_user
+
 #méthode du coude pour déterminer le nombre de clusters
-inerties = []
-for i in range(1,20):
-    kmeans = KMeans(n_clusters=i, random_state=0).fit(data)
-    inerties.append(kmeans.inertia_)
-    
-plt.plot(inerties)
+#inerties = []
+#for i in range(1,30):
+#    kmeans = KMeans(n_clusters=i, random_state=0).fit(data)
+#    inerties.append(kmeans.inertia_)
+#    
+#plt.plot(inerties)
 
-
-#on garde k=3, chaque user appartient alors à un des 4 clusters
-k = 3
-kmeans = KMeans(n_clusters=k, random_state=0, n_init=10).fit(data)
+kmeans = KMeans(n_clusters=k_means_users, random_state=0, n_init=10).fit(data)
 final_data_user["cluster_user"] = kmeans.labels_
 
+del data
+del kmeans
 
-# Les 10 meilleurs films de chaque cluster
-join = final_data_user.iloc[:,[0,-1]]
-ratings_cluster = pd.merge(ratings_cluster, join, left_on="userId", right_on='userId', how='inner')
+# get user cluster on ratings
+clusters = final_data_user.iloc[:,[0,-1]]
+ratings = pd.merge(ratings, clusters, left_on="userId", right_on='userId', how='inner')
 
 
 
 
-# Les films les plus aimés pour chaque cluster d'utilisateur
-a = ratings_cluster.groupby(["cluster_user","movieId"])["rating"].count().reset_index(name="count")
-b = ratings_cluster.groupby(["cluster_user","movieId"])["rating"].mean().reset_index(name="mean")
-a["mean"] = b["mean"]
 
-best_movies_per_cluster = a.sort_values(['cluster_user','mean'],ascending=False).groupby('cluster_user').head(100)
+
+# lier cluster user et films
+links = ratings.groupby(["cluster_user","movieId"])["rating"].count().reset_index(name="count")
+moyenne = ratings.groupby(["cluster_user","movieId"])["rating"].mean().reset_index(name="mean")
+links["mean"] = moyenne["mean"]
+
+
+
+best_movies_per_cluster = links.sort_values(['cluster_user','mean'],ascending=False).groupby('cluster_user').head(100)
 best_movies_per_cluster = pd.merge(best_movies_per_cluster, final_data_movie, left_on = "movieId", right_on = "id")[["title", "cluster_user","cluster_movie", "mean", "count"]].sort_values(["cluster_user", "mean"])
+
 
 
 w = best_movies_per_cluster.groupby(["cluster_user", "cluster_movie"])["mean"].count().reset_index(name="count_per_cluster")
