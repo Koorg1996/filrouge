@@ -103,7 +103,6 @@ df_score = user_movies['rating'].apply(lambda x : float(5) if float(5) in list(x
 
 df_users = df_score.pivot(index = 'userId', columns = 'Kmeans_movies_cluster').reset_index()
 df_users = df_users.replace(np.nan, 0)
-#tableau_users
 
 df_kmeans_users = df_users['score']
 df_kmeans_users
@@ -130,7 +129,7 @@ plt.show()
 kmeans = KMeans(n_clusters=kmeans_centroid_users).fit(df_kmeans_users)
 centroids = kmeans.cluster_centers_
 
-user_clusters = pd.DataFrame({'userId': tableau_users[('userId', '')], 'Kmeans_user_cluster': kmeans.labels_})
+user_clusters = pd.DataFrame({'userId': df_users[('userId', '')], 'Kmeans_user_cluster': kmeans.labels_})
 #user_clusters
 
 
