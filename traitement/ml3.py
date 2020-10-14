@@ -294,12 +294,10 @@ best_movies_per_cluster = links.sort_values(["Kmeans_user_cluster",'mean'],ascen
 best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "count"]].sort_values(["cluster_user", "mean"])
 
 
-=======
 fig5.write_html(output_dir + "Repartition des utilisateurs par cluster utilisateurs.html")
 >>>>>>> 820f76d14e14e436984be3a749e98bf683cd1045:traitement/ml2.py
 
 w = best_movies_per_cluster.groupby(["cluster_user", "cluster_movie"])["mean"].count().reset_index(name="count_per_cluster")
 
 #Maintenant, on souhaite retrouver la liste de films vues par un groupe d'utilisateurs
-
 
