@@ -35,6 +35,7 @@ f.close()
 ############################## ##############################
 
 ################### fichier input ###############################
+input_dir = "data_csv/"
 input_dir = "/home/fitec/donnees_films/"
 ################################################################
 
@@ -79,8 +80,8 @@ df = data_user_votes.sort_values(by=['voteCount'])
 
 
 ######################## FIGURE 1 ##############################
-fig1 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'])
-
+fig1 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'], title = "Nombre de vues total par utilisateur selectionné")
+fig1.write_html(output_dir + "Nombre de vues total par utilisateur.html")
 
 
 ratings = ratings[np.isin(ratings['userId'], data_user_votes['userId'])]
@@ -96,7 +97,7 @@ maxrating = ratings.groupby(["userId"])["rating"].apply(lambda x : max(x)).reset
 
 ##### Critère de Coude pour Kmeans movies
 
-
+######################## COUDE KMEANS MOVIES ##############################
 Inertie =[]
 n_centroids = coude_centroid_movies
 for i in range(1, n_centroids):
@@ -104,7 +105,7 @@ for i in range(1, n_centroids):
     Inertie.append(kmeans.inertia_)
 
 
-######################## COUDE KMEANS MOVIES ##############################
+
 coude_movies = plt.figure()
 plt.plot(range(1, n_centroids), Inertie)
 plt.title('Critere de Coude Kmeans movies')
@@ -121,22 +122,22 @@ movies = pd.DataFrame({'id': tableau_movies_full['id'], 'Kmeans_movies_cluster':
 ######################## FIGURE 2 ##############################
 fig2 = px.histogram(movies, x="Kmeans_movies_cluster", title = "Repartition des films par cluster Kmeans movies ")
 fig2.update_xaxes(type='category')
-
+fig2.write_html(output_dir + "Repartition des films par cluster Kmeans movies.html")
 
 
 
 ######################## FIGURE 3 ##############################
 fig3 = px.histogram(maxrating, x="rating", title = "Repartition du plus haut score offert par un utilisateur")
 fig3.update_xaxes(type='category')
-
+fig3.write_html(output_dir + "Repartition du plus haut score offert par un utilisateur.html")
 
 #On observe combien de film ont noté les utilisateurs ayant offert un score maximal assez bas
 df = data_user_votes[np.isin(data_user_votes['userId'], maxrating[maxrating['rating']<4]['userId'])]
 df = df.sort_values(by = ['voteCount'])
 
 ######################## FIGURE  4 ##############################
-fig4 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'])
-
+fig4 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'],title = "Nombre de films vues par utilisateur ayant offert un score maximal bas")
+#fig4.write_html(output_dir + "Nombre de films vues par utilisateur ayant offert un score maximal bas.html")
 del data_user_votes
 
 
@@ -158,6 +159,7 @@ del ratings_merge
 #Kmeans utilisateurs
 
 ## Critère de Coude
+######################## Coude users ##############################
 Inertie =[]
 n_centroids = coude_centroid_users
 for i in range(1, n_centroids):
@@ -165,7 +167,7 @@ for i in range(1, n_centroids):
     #kmeans.fit(x)
     Inertie.append(kmeans.inertia_)
 
-######################## Coude users ##############################
+
 coude_users = plt.figure()
 plt.plot(range(1, n_centroids), Inertie)
 plt.title('Critere de Coude Kmeans utilisateurs')
@@ -184,7 +186,7 @@ user_clusters = pd.DataFrame({'userId': df_users[('userId', '')], 'Kmeans_user_c
 ######################## FIGURE 5 ##############################
 fig5 = px.histogram(user_clusters, x="Kmeans_user_cluster", title = "Repartition des utilisateurs par cluster utilisateurs")
 fig5.update_xaxes(type='category')
-
+fig5.write_html(output_dir + "Repartition des utilisateurs par cluster utilisateurs.html")
 
 
 date_timeend = datetime.datetime.now()
