@@ -12,16 +12,16 @@ import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 ################### Parametres simulation ##############################
 remove_col_kmeans_movies = ['id','title','vote_average', 'vote_count']
-trunc_user_high = 400 #nombre max de vues total par user
+trunc_user_high = 11500 #nombre max de vues total par user
 trunc_user_low = 20 #nombre min de vues total par user
-trunc_movie_low = 1000
-trunc_movie_high = 8000
+trunc_movie_low = 7
+trunc_movie_high = 76000
 coude_centroid_movies = 14
 kmeans_centroid_movies = 4
 coude_centroid_users  =9
 kmeans_centroid_users = 4
 ################### Parametres de Modelisation ##############################
-p_c_a = True # Activer ou pas la Principal Component analysis
+p_c_a = False # Activer ou pas la Principal Component analysis
 acp_dim = 26 # Principal Component analysis
 
 ###### Modelisation Kmeans utlisateur #########
@@ -47,6 +47,8 @@ content_file += 'On retire les utilisateurs ayant vu moins de ' + str(trunc_user
 content_file += 'On retire les films vus plus de ' + str(trunc_movie_high) +' fois' +'\n'
 content_file += 'On retire les films vus moins de ' + str(trunc_movie_low) +' fois' +'\n'
 content_file += 'Kmeans utilisateur avec parametre de combinaison linéaire ' + str(a) +' ' +'\n'
+content_file += ' Nombre de centroides Kmeans Movies ' + str(kmeans_centroid_movies) +' ' +'\n'
+content_file += ' Nombre de centroides Kmeans utilisateur ' + str(kmeans_centroid_users) +' ' +'\n'
 if p_c_a:
     content_file += 'Principal Component Analysis activée et réduit à  ' + str(acp_dim ) + ' dimensions' + '\n'
 else:
@@ -141,13 +143,10 @@ fig3 = px.histogram(maxrating, x="rating", title = "Repartition du plus haut sco
 fig3.update_xaxes(type='category')
 
 #On observe combien de film ont noté les utilisateurs ayant offert un score maximal assez bas
-df = data_user_votes[np.isin(data_user_votes['userId'], maxrating[maxrating['rating']<4]['userId'])]
-df = df.sort_values(by = ['voteCount'])
-fig4 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'])
+#df = data_user_votes[np.isin(data_user_votes['userId'], maxrating[maxrating['rating']<4]['userId'])]
+#df = df.sort_values(by = ['voteCount'])
+#fig4 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'])
 
-
-
-fig1 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'])
 
 
 
@@ -211,9 +210,9 @@ pp.savefig()
 
 ######################## FIGURE 3 ##############################
 ####### Plotly
-fig3 = px.histogram(maxrating, x="rating", title = "Repartition du plus haut score offert par un utilisateur")
-fig3.update_xaxes(type='category')
-fig3.write_html(output_dir + "Repartition du plus haut score offert par un utilisateur.html")
+# fig3 = px.histogram(maxrating, x="rating", title = "Repartition du plus haut score offert par un utilisateur")
+# fig3.update_xaxes(type='category')
+# fig3.write_html(output_dir + "Repartition du plus haut score offert par un utilisateur.html")
 ####### matplotlib pour le pdf
 maxrating.groupby('rating').count().plot(kind='bar', title = "Repartition du plus haut score offert par un utilisateur")
 plt.ylabel("Nombre d'utilisateurs ")
