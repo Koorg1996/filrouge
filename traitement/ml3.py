@@ -28,7 +28,6 @@ n = 5 #nombre de films à recommander
 
 
 ################### fichier input ###############################
-input_dir = "data_csv/"
 input_dir = "/home/fitec/donnees_films/"
 ################################################################
 
@@ -199,6 +198,9 @@ user_clusters = pd.DataFrame({'userId': df_users[('userId', '')], 'Kmeans_user_c
 # On ajoute le clustering à la tale ratings
 ratings = pd.merge(ratings, user_clusters, left_on="userId", right_on="userId")
 
+# nombre d'utilisateurs par cluster
+nb_users_cluster = ratings.groupby('Kmeans_user_cluster')["rating"].count().reset_index()
+
 ###### Graph de la répartition par cluster des users ######
 fig5 = px.histogram(user_clusters, x="Kmeans_user_cluster", title = "Repartition des utilisateurs par cluster utilisateurs")
 
@@ -220,52 +222,68 @@ links = ratings.groupby(["Kmeans_user_cluster","movieId"])["rating"].count().res
 moyenne = ratings.groupby(["Kmeans_user_cluster","movieId"])["rating"].mean().reset_index(name="mean")
 links["mean"] = moyenne["mean"]
 
-### récupérer les meilleurs films par cluster user
+### récupérer les meilleurs films par cluster user selon la mean
 parmi_combien = 100
-best_movies_per_cluster = links.sort_values(["Kmeans_user_cluster",'mean'],ascending=False).groupby("Kmeans_user_cluster").head(parmi_combien)
-best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "count"]].sort_values(["Kmeans_user_cluster", "mean"]).reset_index()
+best_movies_per_cluster = links.sort_values(["Kmeans_user_cluster",'mean'],ascending=False).groupby("Kmeans_user_cluster").head(parmi_combien).reset_index(drop=True)
+best_movies_per_cluster["nb_user_cluster"] = pd.merge(best_movies_per_cluster, nb_users_cluster, left_on="Kmeans_user_cluster", right_on = "Kmeans_user_cluster")["rating"]
+best_movies_per_cluster["part"] = (best_movies_per_cluster["count"] / best_movies_per_cluster["nb_user_cluster"]) * 100
+best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part"]].sort_values(["Kmeans_user_cluster", "mean"], ascending = False).reset_index()
 
 # Lien cluster movies, cluster user
-w = best_movies_per_cluster.groupby(["Kmeans_user_cluster", "Kmeans_movies_cluster"])["mean"].count().reset_index(name="count_per_cluster")
-
+contingence_clusteruser_clustermovie = best_movies_per_cluster.groupby(["Kmeans_user_cluster", "Kmeans_movies_cluster"])["mean"].count().reset_index(name="count_per_cluster")
+contingence_clusteruser_clustermovie = contingence_clusteruser_clustermovie.pivot(index = "Kmeans_user_cluster", columns = "Kmeans_movies_cluster", values = "count_per_cluster")
 
 # visualisation des meilleurs films par cluster
-visualisation = best_movies_per_cluster.pivot( columns = 'Kmeans_user_cluster', values ="title" )
+visualisation_meilleurs_film_par_cluster = best_movies_per_cluster.pivot( columns = 'Kmeans_user_cluster', values ="title" )
+
 for i in range(kmeans_centroid_users):
-    index = i*parmi_combien
-    values = visualisation.loc[index:index+parmi_combien-1,i].reset_index(drop=True)
-    visualisation[i] = values
-visualisation = visualisation[0:parmi_combien-1]
+    index = (kmeans_centroid_users - 1 - i) *parmi_combien
+    values = visualisation_meilleurs_film_par_cluster.loc[index:index+parmi_combien-1,i].reset_index(drop=True)
+    visualisation_meilleurs_film_par_cluster[i] = values
+    
+visualisation_meilleurs_film_par_cluster = visualisation_meilleurs_film_par_cluster[0:parmi_combien-1]
+####################################################################################################
 
 
 
+
+
+############################" Recommendations pour chaque utilisateur ###############################
 # On veut maintenant recommander n films  à chaque utilisateur
 # On commence par le meilleur film selon son groupe et on descend jusqu'à qu'il y ait n films à lui recommander
 
-for i in range(kmeans_centroid_users):
-    films = best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==i]
-    users = ratings[ratings["Kmeans_user_cluster"]==i]
-    users = users[~users["movieId"].isin(films["index"])]
-    recommendations_cluster = pd.merge(films, users, left_on="index", right_on="movieId").groupby("userId").head(5)
+def delete_if_in_other(row):
+    return [x for x in row["recommended"] if x not in row["movieId"]][0:n]
+
+def recommendations():
+    for i in range(kmeans_centroid_users):
+        films = list(best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==i]["index"])
+        users = ratings[ratings["Kmeans_user_cluster"]==i]
+        user_movie_list = users.groupby("userId")["movieId"].apply(list).reset_index()
+        user_movie_list["recommended"] = [films for _ in range(len(user_movie_list))]
+        user_movie_list["recommended"] = user_movie_list.apply(delete_if_in_other, axis=1)
+        user_movie_list = user_movie_list.drop("movieId", axis=1)
+        
+        if i == 0:
+            toutes_les_recommendations = user_movie_list
+        else:
+            toutes_les_recommendations = pd.concat([toutes_les_recommendations, user_movie_list])
     
-    if i == 0:
-        toutes_les_recommendations = recommendations_cluster
-    else:
-        pd.concat([toutes_les_recommendations, recommendations_cluster])
-    
+    del user_movie_list
+    del films
     del users
-    del recommendations_cluster
+    return toutes_les_recommendations
 
-toutes_les_recommendations.groupby("userId").count()
-ratings.groupby("userId").count()
-
-
-films = list(best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==0][["index"]]["index"])
-users = ratings[ratings["Kmeans_user_cluster"]==0]
+recommendations = recommendations()
 
 
 
 
+
+
+
+
+            
 
 
 
