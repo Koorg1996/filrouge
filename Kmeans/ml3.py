@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 import datetime
 from matplotlib.backends.backend_pdf import PdfPages
 ################### Parametres simulation ##############################
@@ -19,6 +20,21 @@ coude_centroid_movies = 14
 kmeans_centroid_movies = 4
 coude_centroid_users  =9
 kmeans_centroid_users = 4
+################### Parametres de Modelisation ##############################
+p_c_a = True # Activer ou pas la Principal Component analysis
+acp_dim = 26 # Principal Component analysis
+
+###### Modelisation Kmeans utlisateur #########
+a=0.8
+# valeur de a doit être comprise entre zero et un!!!
+# Pour a = 0,
+# Si l'utilisateur a offert un rating de 5 a un des films. score vaut 5
+# Si l'utilisateur n'a offert un rating de 5 a aucun un des films. score vaut le score moyen qu'il a offert aux films
+# Pour a =1,
+# Le score vaut toujours le score moyen qu'il a offert aux films
+
+#plus a augmente et se rapproche de 1, plus l'ecart entre avoir son film préfére dans un cluster ou pas diminue
+
 ##########################################################################
 date_time = datetime.datetime.now()
 ################### fichier output ##############################
@@ -30,6 +46,12 @@ content_file += 'On retire les utilisateurs ayant vu plus de ' + str(trunc_user_
 content_file += 'On retire les utilisateurs ayant vu moins de ' + str(trunc_user_low) +' films' +'\n'
 content_file += 'On retire les films vus plus de ' + str(trunc_movie_high) +' fois' +'\n'
 content_file += 'On retire les films vus moins de ' + str(trunc_movie_low) +' fois' +'\n'
+content_file += 'Kmeans utilisateur avec parametre de combinaison linéaire ' + str(a) +' ' +'\n'
+if p_c_a:
+    content_file += 'Principal Component Analysis activée et réduit à  ' + str(acp_dim ) + ' dimensions' + '\n'
+else:
+    content_file += 'Principal Component Analysis inactive  '
+
 f = open(output_dir+"output"+str(date_time)+".txt", "a")
 f.write(content_file)
 f.close()
@@ -133,13 +155,12 @@ del data_user_votes
 #####################################################################################
 
 
+####################### Principle Component Analysis #####################################
 
-
-
-
-
-
-
+if p_c_a:
+    pca = PCA(n_components=acp_dim, random_state=80)
+    pca.fit(tableau_movies)
+    tableau_movies = pd.DataFrame(pca.transform(tableau_movies))
 
 ####################### Kmeans sur le récapiptulatif de films #############################
 
@@ -152,16 +173,6 @@ n_centroids = coude_centroid_movies
 for i in range(1, n_centroids):
     kmeans = KMeans(n_clusters = i).fit(tableau_movies)
     Inertie.append(kmeans.inertia_)
-
-
-#Inertie =[]
-#n_centroids = coude_centroid_movies
-#for i in range(1, n_centroids):
-#    kmeans = KMeans(n_clusters = i).fit(tableau_movies)
-#    Inertie.append(kmeans.inertia_)
-
-
-####### COUDE KMEANS MOVIES #######
 
 coude_movies = plt.figure()
 plt.plot(range(1, n_centroids), Inertie)
@@ -226,7 +237,7 @@ fig4.write_html(output_dir + "Nombre de films vues par utilisateur ayant offert 
 
 #permet d'avoir une info sur le cluster de film en complément du tableau ratings
 user_movies = ratings.groupby(['userId', 'Kmeans_movies_cluster'])
-df_score = user_movies['rating'].apply(lambda x : 1 if float(5) in list(x) else 0).reset_index(name = 'score')
+df_score = user_movies['rating'].apply(lambda x : (1-a)*float(5) + a*sum(list(x))/len(list(x)) if float(5) in list(x) else a*sum(list(x))/len(list(x))).reset_index(name = 'score')
 df_users = df_score.pivot(index = 'userId', columns = 'Kmeans_movies_cluster').reset_index()
 df_users = df_users.replace(np.nan, 0)
 
@@ -245,20 +256,6 @@ del df_score
 
 ############################## Kmeans utilisateurs #######################################
 
-## Critère de Coude
-
-#Inertie =[]
-#n_centroids = coude_centroid_users
-#for i in range(1, n_centroids):
-#    kmeans = KMeans(n_clusters = i).fit(df_kmeans_users)
-#    Inertie.append(kmeans.inertia_)
-
-######################## Coude users ##############################
-#plt.plot(range(1, n_centroids), Inertie)
-#plt.title('Critere de Coude Kmeans utilisateurs')
-#plt.xlabel('Nombre de clusters')
-#plt.ylabel('Inertie')
-#plt.show()
 
 ######################## Coude users ##############################
 Inertie =[]
