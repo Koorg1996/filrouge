@@ -2,12 +2,8 @@
 
 import pandas as pd
 import numpy as np
-import os
 from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-import plotly.express as px
-from sklearn.preprocessing import StandardScaler
-import datetime
+from sklearn.decomposition import PCA
 
 ################### Parametres simulation ##############################
 remove_col_kmeans_movies = ['id','title','vote_average', 'vote_count']
@@ -15,23 +11,31 @@ trunc_user_high = 400 #nombre max de vues total par user
 trunc_user_low = 20 #nombre min de vues total par user
 trunc_movie_low = 1000
 trunc_movie_high = 100000
-coude_centroid_movies = 20
 kmeans_centroid_movies = 4
-coude_centroid_users  =9
 kmeans_centroid_users = 4
 n = 5 #nombre de films à recommander
+
+p_c_a = True # Activer ou pas la Principal Component analysis
+acp_dim = 26 # Principal Component analysis
+
+###### Modelisation Kmeans utlisateur #########
+a=0.8
+# valeur de a doit être comprise entre zero et un!!!
+# Pour a = 0,
+# Si l'utilisateur a offert un rating de 5 a un des films. score vaut 5
+# Si l'utilisateur n'a offert un rating de 5 a aucun un des films. score vaut le score moyen qu'il a offert aux films
+# Pour a =1,
+# Le score vaut toujours le score moyen qu'il a offert aux films
+#plus a augmente et se rapproche de 1, plus l'ecart entre avoir son film préfére dans un cluster ou pas diminue
 ##########################################################################
 
 
 
 
-
-
-################### fichier input ###############################
+################### fichier input et output ###############################
 input_dir = "/home/fitec/donnees_films/"
+output_dir = "/home/fitec/donnees_films/recommendations/"
 ################################################################
-
-
 
 
 
@@ -72,6 +76,10 @@ data_user_votes = data_user_votes[  data_user_votes['voteCount'] < trunc_user_hi
 df = data_user_votes.sort_values(by=['voteCount'])
 
 ratings = ratings[np.isin(ratings['userId'], data_user_votes['userId'])]
+ratings["title"] = pd.merge(ratings, tableau_movies_full, left_on = "movieId", right_on="id")["title"]
+
+del data_user_votes
+del df
 ######################################################################
 
 
@@ -79,30 +87,14 @@ ratings = ratings[np.isin(ratings['userId'], data_user_votes['userId'])]
 
 
 
+####################### Principle Component Analysis #####################################
 
+if p_c_a:
+    pca = PCA(n_components=acp_dim, random_state=80)
+    pca.fit(tableau_movies)
+    tableau_movies = pd.DataFrame(pca.transform(tableau_movies))
 
-
-######################## Differents graphs pour illustrer ##############################
-
-fig1 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'], title = "Nombre de vues total par utilisateur selectionné")
-
-#On observe le plus haut rating qu'un utlisateur a offert aux films qu'il a noté
-maxrating = ratings.groupby(["userId"])["rating"].apply(lambda x : max(x)).reset_index()
-
-fig3 = px.histogram(maxrating, x="rating", title = "Repartition du plus haut score offert par un utilisateur")
-fig3.update_xaxes(type='category')
-
-#On observe combien de film ont noté les utilisateurs ayant offert un score maximal assez bas
-df = data_user_votes[np.isin(data_user_votes['userId'], maxrating[maxrating['rating']<4]['userId'])]
-df = df.sort_values(by = ['voteCount'])
-fig4 = px.scatter(x=pd.Series(range(0,len(df['userId']))), y=df['voteCount'])
-
-del maxrating
-del data_user_votes
-del df
-#####################################################################################
-
-
+####################### Kmeans sur le récapiptulatif de films #############################
 
 
 
@@ -113,25 +105,6 @@ del df
 
 ####################### Kmeans sur le récapiptulatif de films #############################
 
-##### Critère de Coude pour Kmeans movies
-
-
-######################## COUDE KMEANS MOVIES ##############################
-
-#Inertie =[]
-#n_centroids = coude_centroid_movies
-#for i in range(1, n_centroids):
-#    kmeans = KMeans(n_clusters = i).fit(tableau_movies)
-#    Inertie.append(kmeans.inertia_)
-
-####### COUDE KMEANS MOVIES #######
-#plt.plot(range(1, n_centroids), Inertie)
-#plt.title('Critere de Coude Kmeans movies')
-#plt.xlabel('Nombre de clusters')
-#plt.ylabel('Inertie')
-#plt.show()
-
-
 #### on lance kmeans avec k clusters défini en parametre de simulation
 kmeans = KMeans(n_clusters=kmeans_centroid_movies).fit(tableau_movies)
 centroids = kmeans.cluster_centers_
@@ -141,11 +114,6 @@ movies = pd.DataFrame({'id': tableau_movies_full['id'], 'Kmeans_movies_cluster':
 # On ajoute le clustering à la table ratings et à la table tableau_movies_full
 ratings = pd.merge(ratings, movies, left_on = "movieId", right_on = "id")
 tableau_movies_full = pd.merge(tableau_movies_full, movies, left_on = "id", right_on = "id")
-
-###### Graph de la répartition par cluster de film ######
-fig2 = px.histogram(movies, x="Kmeans_movies_cluster", title = "Repartition des films par cluster Kmeans movies ")
-fig2.update_xaxes(type='category')
-
 #########################################################################################
 
 
@@ -154,7 +122,7 @@ fig2.update_xaxes(type='category')
 
 #permet d'avoir une info sur le cluster de film en complément du tableau ratings
 user_movies = ratings.groupby(['userId', 'Kmeans_movies_cluster'])
-df_score = user_movies['rating'].apply(lambda x : 1 if float(5) in list(x) else 0).reset_index(name = 'score')
+df_score = user_movies['rating'].apply(lambda x : (1-a)*float(5) + a*sum(list(x))/len(list(x)) if float(5) in list(x) else a*sum(list(x))/len(list(x))).reset_index(name = 'score')
 df_users = df_score.pivot(index = 'userId', columns = 'Kmeans_movies_cluster').reset_index()
 df_users = df_users.replace(np.nan, 0)
 
@@ -172,25 +140,6 @@ del df_score
 
 
 ############################## Kmeans utilisateurs #######################################
-
-
-######################## Coude users ##############################
-#Inertie =[]
-#n_centroids = coude_centroid_users
-#for i in range(1, n_centroids):
-#    kmeans = KMeans(n_clusters = i).fit(df_kmeans_users)
-#    Inertie.append(kmeans.inertia_)
-#
-#
-#coude_users = plt.figure()
-#plt.plot(range(1, n_centroids), Inertie)
-#plt.title('Critere de Coude Kmeans utilisateurs')
-#plt.xlabel('Nombre de clusters')
-#plt.ylabel('Inertie')
-#coude_users.show()
-
-
-#### choix du nombre de clusters pour le Kmeans utilisateurs
 kmeans = KMeans(n_clusters=kmeans_centroid_users).fit(df_kmeans_users)
 centroids = kmeans.cluster_centers_
 
@@ -199,10 +148,7 @@ user_clusters = pd.DataFrame({'userId': df_users[('userId', '')], 'Kmeans_user_c
 ratings = pd.merge(ratings, user_clusters, left_on="userId", right_on="userId")
 
 # nombre d'utilisateurs par cluster
-nb_users_cluster = ratings.groupby('Kmeans_user_cluster')["rating"].count().reset_index()
-
-###### Graph de la répartition par cluster des users ######
-fig5 = px.histogram(user_clusters, x="Kmeans_user_cluster", title = "Repartition des utilisateurs par cluster utilisateurs")
+nb_users_cluster = ratings.drop_duplicates("userId").groupby('Kmeans_user_cluster')["rating"].count().reset_index()
 
 
 del user_clusters
@@ -253,16 +199,16 @@ visualisation_meilleurs_film_par_cluster = visualisation_meilleurs_film_par_clus
 # On commence par le meilleur film selon son groupe et on descend jusqu'à qu'il y ait n films à lui recommander
 
 def delete_if_in_other(row):
-    return [x for x in row["recommended"] if x not in row["movieId"]][0:n]
+    return [x for x in row["recommended"] if x not in row["title"]][0:n]
 
 def recommendations():
     for i in range(kmeans_centroid_users):
-        films = list(best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==i]["index"])
+        films = list(best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==i]["title"])
         users = ratings[ratings["Kmeans_user_cluster"]==i]
-        user_movie_list = users.groupby("userId")["movieId"].apply(list).reset_index()
+        user_movie_list = users.groupby("userId")["title"].apply(list).reset_index()
         user_movie_list["recommended"] = [films for _ in range(len(user_movie_list))]
         user_movie_list["recommended"] = user_movie_list.apply(delete_if_in_other, axis=1)
-        user_movie_list = user_movie_list.drop("movieId", axis=1)
+        user_movie_list = user_movie_list.drop("title", axis=1)
         
         if i == 0:
             toutes_les_recommendations = user_movie_list
@@ -277,6 +223,10 @@ def recommendations():
 recommendations = recommendations()
 
 
+
+
+# Sauvegarde des recommendations
+recommendations.to_csv(output_dir + "recommendations.csv", index= False)
 
 
 
