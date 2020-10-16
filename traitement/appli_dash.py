@@ -6,6 +6,8 @@ import pandas as pd
 import dash_html_components as html
 import base64
 
+import premier_nettoyage
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)

@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import json
 import ast
+from variables import input_dir, output_dir
 
-
-path = "/home/fitec/donnees_films/"
+path = input_dir
 
 # TRAVAIL NECESSAIRE SUR CHAQUE VARIABLE pour movies_metadata.csv
 

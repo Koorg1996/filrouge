@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from variables import input_dir, output_dir
 
 ################### Parametres simulation ##############################
 remove_col_kmeans_movies = ['id','title','vote_average', 'vote_count']
@@ -33,8 +34,8 @@ a=0.8
 
 
 ################### fichier input et output ###############################
-input_dir = "/home/fitec/donnees_films/"
-output_dir = "/home/fitec/donnees_films/recommendations/"
+input_dir = input_dir
+output_dir = output_dir
 ################################################################
 
 
@@ -48,7 +49,7 @@ output_dir = "/home/fitec/donnees_films/recommendations/"
 
 ################ Lecture et tri de la donnée ########################
 tableau_movies_full = pd.read_csv(input_dir + "final_data_movie.csv")
-ratings = pd.read_csv(input_dir + "ratings.csv")
+ratings = pd.read_csv(input_dir + "clean_ratings.csv")
 ratings  = ratings.drop(['timestamp'], axis = 1)
 
 all_movies = list(tableau_movies_full.drop_duplicates("id")["id"])
@@ -76,7 +77,7 @@ data_user_votes = data_user_votes[  data_user_votes['voteCount'] < trunc_user_hi
 df = data_user_votes.sort_values(by=['voteCount'])
 
 ratings = ratings[np.isin(ratings['userId'], data_user_votes['userId'])]
-ratings["title"] = pd.merge(ratings, tableau_movies_full, left_on = "movieId", right_on="id")["title"]
+ratings["title"] = pd.merge(ratings, tableau_movies_full[["id", "title"]], left_on = "movieId", right_on="id")["title"]
 
 del data_user_votes
 del df

@@ -1,1 +1,0 @@
-Colonnes retirées de tableau_movies['id', 'title', 'vote_average', 'vote_count']

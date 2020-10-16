@@ -3,8 +3,10 @@ import numpy as np
 import matplotlib as plt
 import ast
 from ast import literal_eval
+from variables import input_dir, output_dir
 
-path = "/home/fitec/donnees_films/"
+
+path = input_dir
 
 #IMPORT DATA
 metadata = pd.read_csv(path + "metadata_carac_speciaux.csv")
@@ -17,7 +19,7 @@ ratings=pd.read_csv(path + "ratings.csv", delimiter = ',')
 
 
 
-#1 supprimer les valeurs missing
+#1 supprimer les valeurs missing    
 metadata=metadata.dropna(subset=['id'])
 metadata=metadata.dropna(subset=['title'])
 
