@@ -8,19 +8,19 @@ from variables import input_dir, output_dir
 
 ################### Parametres simulation ##############################
 remove_col_kmeans_movies = ['id','title','vote_average', 'vote_count']
-trunc_user_high = 400 #nombre max de vues total par user
+trunc_user_high = 800 #nombre max de vues total par user
 trunc_user_low = 20 #nombre min de vues total par user
 trunc_movie_low = 1000
 trunc_movie_high = 100000
-kmeans_centroid_movies = 4
+kmeans_centroid_movies = 5
 kmeans_centroid_users = 4
 n = 5 #nombre de films à recommander
 
 p_c_a = True # Activer ou pas la Principal Component analysis
-acp_dim = 26 # Principal Component analysis
+acp_dim = 20 # Principal Component analysis
 
 ###### Modelisation Kmeans utlisateur #########
-a=0.8
+a=1
 # valeur de a doit être comprise entre zero et un!!!
 # Pour a = 0,
 # Si l'utilisateur a offert un rating de 5 a un des films. score vaut 5
@@ -28,6 +28,8 @@ a=0.8
 # Pour a =1,
 # Le score vaut toujours le score moyen qu'il a offert aux films
 #plus a augmente et se rapproche de 1, plus l'ecart entre avoir son film préfére dans un cluster ou pas diminue
+b = 0.99 #définir un score de film pour chaque cluster d'utilisateur  : b*moyenne_note + (1-b)*nombre_de_notes
+
 ##########################################################################
 
 
@@ -87,7 +89,6 @@ del df
 
 
 
-
 ####################### Principle Component Analysis #####################################
 
 if p_c_a:
@@ -96,9 +97,6 @@ if p_c_a:
     tableau_movies = pd.DataFrame(pca.transform(tableau_movies))
 
 ####################### Kmeans sur le récapiptulatif de films #############################
-
-
-
 
 
 
@@ -123,16 +121,35 @@ tableau_movies_full = pd.merge(tableau_movies_full, movies, left_on = "id", righ
 
 #permet d'avoir une info sur le cluster de film en complément du tableau ratings
 user_movies = ratings.groupby(['userId', 'Kmeans_movies_cluster'])
-df_score = user_movies['rating'].apply(lambda x : (1-a)*float(5) + a*sum(list(x))/len(list(x)) if float(5) in list(x) else a*sum(list(x))/len(list(x))).reset_index(name = 'score')
+df_score = user_movies['rating'].apply(lambda x : (1-a)*float(5) + a*sum(list(x))/len(list(x)) if float(5) in list(x) else sum(list(x))/len(list(x))).reset_index(name = 'score')
 df_users = df_score.pivot(index = 'userId', columns = 'Kmeans_movies_cluster').reset_index()
-df_users = df_users.replace(np.nan, 0)
+df_users = df_users.replace(np.nan, 3.5)
 
-df_kmeans_users = df_users['score']
+names = []
+for i in range(kmeans_centroid_movies):
+    name = "k"+str(i)
+    names.append(name)
+df_users.columns= ["userId"] + names 
 
+#On calcule la moyenne des note spar utilisateur afin de ne pas se retrouver avec un clustering de type :
+# groupe des utilisteurs qui notent bien, groupe des utilisateurs qui notent mal ,ect
+
+moy_by_user = ratings.groupby("userId")["rating"].mean().reset_index(name="note_moy_user")
+df_users = pd.merge(df_users, moy_by_user, left_on = "userId", right_on="userId")
+data = df_users
+data = data.drop("userId", axis=1)
+for col in data.drop("note_moy_user", axis=1).columns:
+    data[col] = data[col]/data["note_moy_user"]
+data = data.drop("note_moy_user", axis=1)
+
+
+df_kmeans_users = data
+
+del moy_by_user
 del df_score
+del data
+del names
 #################################################################################################
-
-
 
 
 
@@ -143,7 +160,7 @@ del df_score
 kmeans = KMeans(n_clusters=kmeans_centroid_users).fit(df_kmeans_users)
 centroids = kmeans.cluster_centers_
 
-user_clusters = pd.DataFrame({'userId': df_users[('userId', '')], 'Kmeans_user_cluster': kmeans.labels_})
+user_clusters = pd.DataFrame({'userId': df_users["userId"], 'Kmeans_user_cluster': kmeans.labels_})
 # On ajoute le clustering à la tale ratings
 ratings = pd.merge(ratings, user_clusters, left_on="userId", right_on="userId")
 
@@ -173,7 +190,8 @@ parmi_combien = 300
 best_movies_per_cluster = links.sort_values(["Kmeans_user_cluster",'mean'],ascending=False).groupby("Kmeans_user_cluster").head(parmi_combien).reset_index(drop=True)
 best_movies_per_cluster["nb_user_cluster"] = pd.merge(best_movies_per_cluster, nb_users_cluster, left_on="Kmeans_user_cluster", right_on = "Kmeans_user_cluster")["rating"]
 best_movies_per_cluster["part"] = (best_movies_per_cluster["count"] / best_movies_per_cluster["nb_user_cluster"]) * 100
-best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part" ,"count"]].sort_values(["Kmeans_user_cluster", "mean"], ascending = False).reset_index()
+best_movies_per_cluster["score"] = b*best_movies_per_cluster["mean"] + (1-b)*best_movies_per_cluster["part"]
+best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part" ,"count", "score"]].sort_values(["Kmeans_user_cluster", "score"], ascending = False).reset_index()
 
 # Lien cluster movies, cluster user
 contingence_clusteruser_clustermovie = best_movies_per_cluster.groupby(["Kmeans_user_cluster", "Kmeans_movies_cluster"])["mean"].count().reset_index(name="count_per_cluster")
@@ -193,7 +211,7 @@ visualisation_meilleurs_film_par_cluster = visualisation_meilleurs_film_par_clus
 
 
 
-############################" Recommendations pour chaque utilisateur ###############################
+############################ Recommendations pour chaque utilisateur ###############################
 # On veut maintenant recommander n films  à chaque utilisateur
 # On commence par le meilleur film selon son groupe et on descend jusqu'à qu'il y ait n films à lui recommander
 
@@ -271,52 +289,63 @@ recommendations.to_csv(output_dir + "recommendations.csv", index= False)
 
 #Graphs (à mettre en commentaires)
 
-import ast
-
-a = pd.read_csv("/home/fitec/donnees_films/metadata_carac_speciaux.csv")
-
-a=a.dropna(subset=['id'])
-a=a.dropna(subset=['title'])
-a=a.loc[a['status']== 'Released']
-a=pd.get_dummies(a, columns=["adult"]) 
-a=a.drop_duplicates()
-a=a.drop_duplicates(subset='id', keep="first")
-a=a.drop_duplicates(subset='title', keep="first")
-a=a.reset_index(drop=True)
-
-def encoding_dic(data, variable, liste):
-
-    serie_col = data[variable]
-    #Création de la colonne total : liste des catégories appartenant à la liste pour chaque ligne
-    def add(x, liste_col):
-        total = []
-        if type(x) == str and x[0] == "[":
-            a = ast.literal_eval(x)
-            if len(a) > 0:
-                for j in range(len(a)):
-                    comp = a[j]["name"]
-                    if comp in liste_col:
-                        total.append(comp)
-                if len(total) == 0:
-                    total.append("autre")
-            else:
-                total.append("autre")
-        return total
-    
-    total = serie_col.apply(lambda x : add(x, liste_col = liste))
-    df = serie_col.to_frame()
-    df["total"] = total
-    return df
-
-genres = encoding_dic(a, "genres", ['Drama', 'Comedy', 'Thriller', 'Romance', 'Action', 'Horror', 'Crime', 'Documentary'])
-genres["total"] = genres["total"].apply(lambda x :  x[0])
-
-b = pd.concat([a["title"], genres["total"]], axis = 1)
-
-best_movies_per_cluster = pd.merge(best_movies_per_cluster, b, left_on = "title", right_on = "title").sort_values(["Kmeans_user_cluster", "mean"], ascending=False)
-
+#import ast
+#
+#a = pd.read_csv("/home/fitec/donnees_films/metadata_carac_speciaux.csv")
+#
+#a=a.dropna(subset=['id'])
+#a=a.dropna(subset=['title'])
+#a=a.loc[a['status']== 'Released']
+#a=pd.get_dummies(a, columns=["adult"]) 
+#a=a.drop_duplicates()
+#a=a.drop_duplicates(subset='id', keep="first")
+#a=a.drop_duplicates(subset='title', keep="first")
+#a=a.reset_index(drop=True)
+#
+#def encoding_dic(data, variable, liste):
+#
+#    serie_col = data[variable]
+#    #Création de la colonne total : liste des catégories appartenant à la liste pour chaque ligne
+#    def add(x, liste_col):
+#        total = []
+#        if type(x) == str and x[0] == "[":
+#            a = ast.literal_eval(x)
+#            if len(a) > 0:
+#                for j in range(len(a)):
+#                    comp = a[j]["name"]
+#                    if comp in liste_col:
+#                        total.append(comp)
+#                if len(total) == 0:
+#                    total.append("autre")
+#            else:
+#                total.append("autre")
+#        return total
+#    
+#    total = serie_col.apply(lambda x : add(x, liste_col = liste))
+#    df = serie_col.to_frame()
+#    df["total"] = total
+#    return df
+#
+#liste_genre = ['Drama', 'Comedy', 'Thriller', 'Romance', 'Action', 'Horror', 'Crime', 'Documentary']
+#liste_prod_comp = ['WarnerBros.', 'Metro-Goldwyn-MayerMGM', 'ParamountPictures', 'TwentiethCenturyFoxFilmCorporation', 'UniversalPictures', 'ColumbiaPicturesCorporation', 'Canal', 'ColumbiaPictures', 'RKORadioPictures']
+#liste_prod_count = ['UnitedStatesofAmerica', 'null', 'UnitedKingdom', 'France', 'Germany', 'Italy', 'Canada', 'Japan', 'Spain', 'Russia']
+#
+#
+#genres = encoding_dic(a, "genres", liste_genre)
+#genres["genre"] = genres["total"].apply(lambda x :  x[0])
+#prod_comp = encoding_dic(a, "production_companies", liste_prod_comp)
+#prod_comp["prod_comp"] = prod_comp["total"].apply(lambda x :  x[0])
+#prod_count = encoding_dic(a, "production_countries", liste_prod_count)
+#prod_count["prod_count"] = prod_count["total"].apply(lambda x :  x[0])
+#
+#
+#
+#b = pd.concat([a["title"], genres["genre"], prod_comp["prod_comp"], prod_count["prod_count"]], axis = 1)
+#
+#c = pd.merge(best_movies_per_cluster, b, left_on = "title", right_on = "title").sort_values(["Kmeans_user_cluster", "score"], ascending=False)
+#
 
 # Save for graphs
-best_movies_per_cluster.to_csv("/home/fitec/donnees_films/for_graphs/best_movies_per_cluster.csv", index= False)
+#c.to_csv("/home/fitec/donnees_films/for_graphs/best_movies_per_cluster.csv", index= False)
 
 

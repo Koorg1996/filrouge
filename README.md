@@ -8,3 +8,4 @@ Etapes:
 
 
 Vous trouverez différents scripts dans le dossier analyse_de_la_donnee nous ayant permi d'analyser la donnée afin de savoir comment la nettoyer et la modéliser.
+Définir l'input directory et l'output directory dans /traitement/variables/py.
