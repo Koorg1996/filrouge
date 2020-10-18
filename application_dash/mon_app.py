@@ -17,7 +17,18 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 best_movies_per_cluster = pd.read_csv(path  + "best_movies_per_cluster.csv")
 
 n_clusters = len(list(best_movies_per_cluster.groupby("Kmeans_user_cluster")["title"].count()))
-   
+
+best_movies_per_cluster.groupby("Kmeans_user_cluster")["mean"].mean()
+
+
+df = best_movies_per_cluster.groupby("Kmeans_user_cluster")[["title","mean","variance", "Kmeans_user_cluster"]].head(50)
+
+a = df.groupby("title")["title"].count().reset_index(name="nb").sort_values("nb", ascending=False)
+
+df = pd.merge(df, a, left_on = "title", right_on= "title")
+#df = df[df["nb"]>1]
+
+fig = px.scatter(df, x= "mean", y="variance", color="Kmeans_user_cluster")
 
 app.layout = html.Div(children=[
     html.H1(children='Resultats de la recommendation', 
@@ -72,7 +83,9 @@ app.layout = html.Div(children=[
                     className="six columns"
                     )
 
-    ], className="row")
+    ], className="row"),
+    
+    dcc.Graph(figure=fig)
     
 
 ])
@@ -85,9 +98,9 @@ def make_chart(cluster,n_premiers):
     df = best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==cluster][0:n_premiers]
     titre = "Part de vues des meilleurs films."
     if n_premiers > 50:
-        fig = px.scatter(df, x= "title", y="part", title=titre)
+        fig = px.scatter(df, x= "title", y="part", title=titre, color="mean")
     else:
-        fig = px.bar(df, x= "title", y="part", title=titre)
+        fig = px.bar(df, x= "title", y="part", title=titre, color="mean")
     return fig
 
 @app.callback(Output('fig2', 'figure'),
@@ -96,11 +109,11 @@ def make_chart(cluster,n_premiers):
 
 def make_chart2(cluster,n_premiers): 
     df = best_movies_per_cluster[best_movies_per_cluster["Kmeans_user_cluster"]==cluster][0:n_premiers]
-    titre = "Moyennes des meilleurs films"
+    titre = "Variance des meilleurs films"
     if n_premiers > 50:
-        fig = px.scatter(df, x= "title", y="mean", title=titre)
+        fig = px.scatter(df, x= "title", y="variance", title=titre, color="mean")
     else:
-        fig = px.bar(df, x= "title", y="mean", title=titre)
+        fig = px.bar(df, x= "title", y="variance", title=titre, color="mean")
     return fig
 
 @app.callback(Output('fig3', 'figure'),
