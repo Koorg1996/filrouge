@@ -28,7 +28,7 @@ a=1
 # Pour a =1,
 # Le score vaut toujours le score moyen qu'il a offert aux films
 #plus a augmente et se rapproche de 1, plus l'ecart entre avoir son film préfére dans un cluster ou pas diminue
-b = 0.99 #définir un score de film pour chaque cluster d'utilisateur  : b*moyenne_note + (1-b)*nombre_de_notes
+b = 0.99 #définir un score de film pour chaque cluster d'utilisateur  : b*moyenne_note + (1-b)*part
 
 ##########################################################################
 
@@ -191,7 +191,7 @@ best_movies_per_cluster = links.sort_values(["Kmeans_user_cluster",'mean'],ascen
 best_movies_per_cluster["nb_user_cluster"] = pd.merge(best_movies_per_cluster, nb_users_cluster, left_on="Kmeans_user_cluster", right_on = "Kmeans_user_cluster")["rating"]
 best_movies_per_cluster["part"] = (best_movies_per_cluster["count"] / best_movies_per_cluster["nb_user_cluster"]) * 100
 best_movies_per_cluster["score"] = b*best_movies_per_cluster["mean"] + (1-b)*best_movies_per_cluster["part"]
-best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part" ,"count", "score"]].sort_values(["Kmeans_user_cluster", "score"], ascending = False).reset_index()
+best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part" ,"count", "score"]].sort_values(["Kmeans_user_cluster", "mean"], ascending = False).reset_index()
 
 # Lien cluster movies, cluster user
 contingence_clusteruser_clustermovie = best_movies_per_cluster.groupby(["Kmeans_user_cluster", "Kmeans_movies_cluster"])["mean"].count().reset_index(name="count_per_cluster")
@@ -288,7 +288,7 @@ recommendations.to_csv(output_dir + "recommendations.csv", index= False)
 
 
 #Graphs (à mettre en commentaires)
-
+#
 #import ast
 #
 #a = pd.read_csv("/home/fitec/donnees_films/metadata_carac_speciaux.csv")
@@ -342,10 +342,10 @@ recommendations.to_csv(output_dir + "recommendations.csv", index= False)
 #
 #b = pd.concat([a["title"], genres["genre"], prod_comp["prod_comp"], prod_count["prod_count"]], axis = 1)
 #
-#c = pd.merge(best_movies_per_cluster, b, left_on = "title", right_on = "title").sort_values(["Kmeans_user_cluster", "score"], ascending=False)
+#c = pd.merge(best_movies_per_cluster, b, left_on = "title", right_on = "title").sort_values(["Kmeans_user_cluster", "mean"], ascending=False)
 #
-
-# Save for graphs
+#
+##Save for graphs
 #c.to_csv("/home/fitec/donnees_films/for_graphs/best_movies_per_cluster.csv", index= False)
 
 
