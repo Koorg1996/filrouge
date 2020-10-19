@@ -13,7 +13,7 @@ trunc_user_low = 20 #nombre min de vues total par user
 trunc_movie_low = 1000
 trunc_movie_high = 100000
 kmeans_centroid_movies = 5
-kmeans_centroid_users = 4
+kmeans_centroid_users = 6
 n = 5 #nombre de films à recommander
 
 p_c_a = True # Activer ou pas la Principal Component analysis
@@ -39,10 +39,6 @@ b = 0.99 #définir un score de film pour chaque cluster d'utilisateur  : b*moyen
 input_dir = input_dir
 output_dir = output_dir
 ################################################################
-
-
-
-
 
 
 
@@ -79,14 +75,11 @@ data_user_votes = data_user_votes[  data_user_votes['voteCount'] < trunc_user_hi
 df = data_user_votes.sort_values(by=['voteCount'])
 
 ratings = ratings[np.isin(ratings['userId'], data_user_votes['userId'])]
-ratings["title"] = pd.merge(ratings, tableau_movies_full[["id", "title"]], left_on = "movieId", right_on="id")["title"]
+ratings = pd.merge(ratings, tableau_movies_full[["id", "title"]], left_on = "movieId", right_on="id")
 
 del data_user_votes
 del df
 ######################################################################
-
-
-
 
 
 ####################### Principle Component Analysis #####################################
@@ -123,7 +116,7 @@ tableau_movies_full = pd.merge(tableau_movies_full, movies, left_on = "id", righ
 user_movies = ratings.groupby(['userId', 'Kmeans_movies_cluster'])
 df_score = user_movies['rating'].apply(lambda x : (1-a)*float(5) + a*sum(list(x))/len(list(x)) if float(5) in list(x) else sum(list(x))/len(list(x))).reset_index(name = 'score')
 df_users = df_score.pivot(index = 'userId', columns = 'Kmeans_movies_cluster').reset_index()
-df_users = df_users.replace(np.nan, 3.5)
+df_users = df_users.replace(np.nan, 0)
 
 names = []
 for i in range(kmeans_centroid_movies):
@@ -141,6 +134,7 @@ data = data.drop("userId", axis=1)
 for col in data.drop("note_moy_user", axis=1).columns:
     data[col] = data[col]/data["note_moy_user"]
 data = data.drop("note_moy_user", axis=1)
+data = data.replace(0, 1)
 
 
 df_kmeans_users = data
@@ -155,7 +149,6 @@ del names
 
 
 
-
 ############################## Kmeans utilisateurs #######################################
 kmeans = KMeans(n_clusters=kmeans_centroid_users).fit(df_kmeans_users)
 centroids = kmeans.cluster_centers_
@@ -163,6 +156,8 @@ centroids = kmeans.cluster_centers_
 user_clusters = pd.DataFrame({'userId': df_users["userId"], 'Kmeans_user_cluster': kmeans.labels_})
 # On ajoute le clustering à la tale ratings
 ratings = pd.merge(ratings, user_clusters, left_on="userId", right_on="userId")
+
+
 
 # nombre d'utilisateurs par cluster
 nb_users_cluster = ratings.drop_duplicates("userId").groupby('Kmeans_user_cluster')["rating"].count().reset_index()
@@ -196,7 +191,7 @@ best_movies_per_cluster = links.sort_values(["Kmeans_user_cluster",'mean'],ascen
 best_movies_per_cluster["nb_user_cluster"] = pd.merge(best_movies_per_cluster, nb_users_cluster, left_on="Kmeans_user_cluster", right_on = "Kmeans_user_cluster")["rating"]
 best_movies_per_cluster["part"] = (best_movies_per_cluster["count"] / best_movies_per_cluster["nb_user_cluster"]) * 100
 best_movies_per_cluster["score"] = b*best_movies_per_cluster["mean"] + (1-b)*best_movies_per_cluster["part"]
-best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part" ,"count", "variance"]].sort_values(["Kmeans_user_cluster", "mean"], ascending = False).reset_index()
+best_movies_per_cluster = pd.merge(best_movies_per_cluster, tableau_movies_full, left_on = "movieId", right_on = "id")[["title", "Kmeans_user_cluster","Kmeans_movies_cluster", "mean", "part" ,"count", "variance", "nb_user_cluster"]].sort_values(["Kmeans_user_cluster", "mean"], ascending = False).reset_index()
 
 # Lien cluster movies, cluster user
 contingence_clusteruser_clustermovie = best_movies_per_cluster.groupby(["Kmeans_user_cluster", "Kmeans_movies_cluster"])["mean"].count().reset_index(name="count_per_cluster")
@@ -352,5 +347,5 @@ recommendations.to_csv(output_dir + "recommendations.csv", index= False)
 #
 ##Save for graphs
 #c.to_csv("/home/fitec/donnees_films/for_graphs/best_movies_per_cluster.csv", index= False)
-
+#
 
