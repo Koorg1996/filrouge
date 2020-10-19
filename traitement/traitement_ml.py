@@ -11,8 +11,8 @@ remove_col_kmeans_movies = ['id','title','vote_average', 'vote_count']
 trunc_user_high = 800 #nombre max de vues total par user
 trunc_user_low = 20 #nombre min de vues total par user
 trunc_movie_low = 1000
-trunc_movie_high = 100000
-kmeans_centroid_movies = 5
+trunc_movie_high = 100000000
+kmeans_centroid_movies = 3
 kmeans_centroid_users = 6
 n = 5 #nombre de films à recommander
 
@@ -31,7 +31,6 @@ a=1
 b = 0.99 #définir un score de film pour chaque cluster d'utilisateur  : b*moyenne_note + (1-b)*part
 
 ##########################################################################
-
 
 
 
@@ -69,7 +68,7 @@ del all_movies
 tableau_movies = tableau_movies_full.drop(tableau_movies_full[remove_col_kmeans_movies], axis = 1)
 
 #on filtre les utilisateurs qui ont emis trop de votes, ou pas assez dans ratings
-data_user_votes = ratings.groupby(["userId"])["rating"].apply(lambda x : len(list(x) )).reset_index(name = 'voteCount')
+data_user_votes = ratings.groupby(["userId"])["rating"].count().reset_index(name = 'voteCount')
 data_user_votes = data_user_votes[ trunc_user_low  < data_user_votes['voteCount'] ]
 data_user_votes = data_user_votes[  data_user_votes['voteCount'] < trunc_user_high]
 df = data_user_votes.sort_values(by=['voteCount'])
@@ -82,6 +81,8 @@ del df
 ######################################################################
 
 
+
+
 ####################### Principle Component Analysis #####################################
 
 if p_c_a:
@@ -90,7 +91,6 @@ if p_c_a:
     tableau_movies = pd.DataFrame(pca.transform(tableau_movies))
 
 ####################### Kmeans sur le récapiptulatif de films #############################
-
 
 
 

@@ -47,7 +47,7 @@ metadata=pd.get_dummies(metadata, columns=["adult"])
 
 
 #4 drop duplicates  
-metadata=metadata.drop_duplicates()
+metadata=metadata.drop_duplicates().sort_values("popularity", ascending=False)
 metadata=metadata.drop_duplicates(subset='id', keep="first")
 metadata=metadata.drop_duplicates(subset='title', keep="first")
 metadata = metadata.reset_index(drop=True)
