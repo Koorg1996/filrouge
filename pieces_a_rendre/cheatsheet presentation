@@ -4,8 +4,9 @@ plus d'exploration de la donnée et de dataviz avant de lancer des algorithmes
 plus de travail sur la recherche d'un meilleur traitement/meilleure recommandation, lecture de doc sur le sujet
 plus d'automatisation :actuellement la donnée n'est pas automatiquement importée depuis hdfs
 un traitement big data de la donnée : spark ou mapreduce
-trouver un moyen de rentrer dans un cadre supervisé pour pouvoir évaluer le modèle 
 attendre un backtesting (que les individus répondent à nos recommandations)
+(trouver un moyen de rentrer dans un cadre supervisé pour pouvoir évaluer le modèle) 
+
 
 
 explications : 
@@ -14,5 +15,11 @@ pourquoi un kmeans utilisateurs ?
 pourquoi un kmeans movies au préalable ?
 avantages/inconvénients des autres pistes
 
+
+
+
+
+présentation : 
+- insister sur le positif plus que sur le négatif
 
 
